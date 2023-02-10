@@ -26,11 +26,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 colorama.init()
-#mayor(breaking changes).minor(new features).patch(fixes)
-#import logging
-
-#logging.basicConfig()
-#logging.getLogger("paramiko").setLevel(logging.DEBUG) # for example
 
 workingDir = "f5Reports/"
 
@@ -318,8 +313,7 @@ else:
         'start': int((d - timedelta(days=7)).timestamp()),
         'end': int(d.timestamp()),
     }
-uniqueId=uuid.uuid4().hex
-remoteTmpPath=f"/var/tmp/perfF5_{uniqueId}/" #siempre debe terminar con /
+
 performanceReportDict={}
 showWarning=None
 if args.username: 
@@ -341,7 +335,7 @@ elif args.file:
         sys.exit(1)
 for device in devices:
     try:
-        result=f5.getDeviceInfo(device['host'], device['username'], device['password'],rrdGraphs,rrdRange,remoteTmpPath)
+        result=f5.getDeviceInfo(device['host'], device['username'], device['password'],rrdGraphs,rrdRange,workingDir)
         performanceReportDict[device['host']]=result
     except Exception as err:
         logging.info('Failed to get information from f5 device. Let\'s move on to the next task')
