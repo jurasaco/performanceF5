@@ -264,3 +264,8 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdGraphs,rrdRang
 
    # print(devicesInfo)
     return deviceInfo
+
+# TODO: implementar estadisticas de log por f5 id
+def getLtmLogsStats(ltmLogs):
+    ltmLogStats=[]
+    return ltmLogStats
