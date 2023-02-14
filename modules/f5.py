@@ -10,7 +10,7 @@ import modules.logging as logging
 def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
     bigipIpAddress= client.get_transport().getpeername()[0]
     uniqueId=uuid.uuid4().hex
-    remoteTmpPath=f"/var/tmp/perfF5_{uniqueId}/" #siempre debe terminar con /
+    remoteTmpPath=f"/var/tmp/perfF5_{uniqueId}" #siempre debe terminar sin /
     
     getOutputFromCmdRaw(
         client,
@@ -56,11 +56,11 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
         try:
             sftpClient = client.open_sftp()
             logging.infoUnholdOk('OK')
-            logging.infoAndHold(f"{' '*2}Transfering Remote:{remoteTmpPath}{rrdGraph['filename']}  -> Local:{LocalTmpPath}{bigipIpAddress}_{rrdGraph['filename']} ...")
-            sftpClient.get(f"{remoteTmpPath}{rrdGraph['filename']}", f"{LocalTmpPath}{bigipIpAddress}_{rrdGraph['filename']}")
+            logging.infoAndHold(f"{' '*2}Transfering Remote:{remoteTmpPath}/{rrdGraph['filename']}  -> Local:{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']} ...")
+            sftpClient.get(f"{remoteTmpPath}/{rrdGraph['filename']}", f"{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}")
             logging.infoUnholdOk('OK')
 
-            graphInfo['filename']=f"{LocalTmpPath}{bigipIpAddress}_{rrdGraph['filename']}"        
+            graphInfo['filename']=f"{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}"        
 
             logging.infoAndHold('Closing sftp client...')
             sftpClient.close()
@@ -81,7 +81,7 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
 
 
 def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
-    cmd = f"rrdtool graph {remoteTmpPath}{rrdGraph['filename']} -D -w 909 -h 269 --font DEFAULT:11: " \
+    cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} -D -w 909 -h 269 --font DEFAULT:11: " \
     f"--start {rrdRange['start']} --end {rrdRange['end']}  "
     if 'x-grid' in rrdRange:
         cmd+=f"--x-grid \"{rrdRange['x-grid']}\" "
@@ -117,6 +117,7 @@ def rddtoolMaxCmd(serie,rrdRange):
 
 def getInfoFromCmd(client, cmdInfo, execCmd, keysToParse, multiple=False):
     execCmdOutput = getOutputFromCmdRaw(client, cmdInfo, execCmd)
+    
     ret = {}
     for keyToParse in keysToParse:
         if multiple:
@@ -189,7 +190,7 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdGraphs,rrdRang
         },
         {
             'key':'sysChassisSerial',
-            'regexp':r'Chassis Serial\s+(.+)'
+            'regexp':r'(Chassis|Appliance) Serial\s+(.+)'
         }
         ]
     )

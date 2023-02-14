@@ -19,7 +19,7 @@ def convert_bytes(size):
         size /= 1024.0
     return "%.1f PB" % (size / 1024)
 
-def generateHtml(devicesInfo,reportName,localTmpPath):
+def generateHtml(devicesInfo,reportName,outputPath):
     if not len(devicesInfo) > 0: 
         logging.warning("Empty device performance dictionary. The report was not generated.")
         return None
@@ -183,7 +183,7 @@ def generateHtml(devicesInfo,reportName,localTmpPath):
     </html>
     """
     nowStr=datetime.today().strftime('%Y%m%d%H%M%S')
-    reportFileOutput=f'{localTmpPath}{reportName}_{nowStr}.html'
+    reportFileOutput=f'{outputPath}/{reportName}_{nowStr}.html'
     logging.infoAndHold(f'{" "*1}Saving report to {reportFileOutput}...')
     with open(reportFileOutput, 'w',encoding='utf-8') as file:
         file.write(html)

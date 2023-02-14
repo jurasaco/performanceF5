@@ -15,6 +15,8 @@ import stat
 import base64
 import colorama #for windows terminal colors
 import csv
+import tempfile
+import shutil
 
 import modules.logging as logging
 import modules.f5 as f5
@@ -27,7 +29,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 colorama.init()
 
-workingDir = "f5Reports/"
+
 
 def readDevicesFile(filePath):
 
@@ -107,20 +109,30 @@ def validate_args(args):
             parser.print_help()
             print(strErr+'La opción -n debe ser proporcionada.')
             sys.exit(1)       
-    if args.file:
-        if args.username or args.devices:
+    if not args.directory:
             parser.print_help()
-            print(strErr+'La opción -f no puede ser usada con -u or -d.')
+            print(strErr+'La opción -d debe ser proporcionada.')
+            sys.exit(1)  
+    else:
+        args.directory=args.directory.rstrip('/')
+        if os.path.normpath(args.directory)!=args.directory:
+            print(f"{strErr}{args.directory} es una sintaxis de directorio no valida")
+            sys.exit(1)
+        args.directory=os.path.abspath(args.directory)
+    if args.file:
+        if args.username or args.hosts:
+            parser.print_help()
+            print(strErr+'La opción -f no puede ser usada con -u or -h.')
             sys.exit(1)
     elif args.username:
-        if not args.devices:
+        if not args.hosts:
             parser.print_help()
-            print(strErr+'La opción -u debe ser usada con -d.')
+            print(strErr+'La opción -u debe ser usada con -h.')
             sys.exit(1)
-    elif args.devices:
+    elif args.hosts:
         if not args.username:
             parser.print_help()
-            print(strErr+'La opción -d debe ser usada con -u.')
+            print(strErr+'La opción -h debe ser usada con -u.')
             sys.exit(1)
     else:
         parser.print_help()
@@ -133,12 +145,14 @@ parser = argparse.ArgumentParser(
  prog="performanceF5",
  description='Generador de informe de rendimiento de equipos f5 via ssh/sftp. Escrito por '+ colored('Juan Salinas', 'yellow') + '.')
 group = parser.add_argument_group('argumentos requeridos')
+group.add_argument('-d', '--directory', type=str,
+                    help='La ruta del directorio para almacenar el reporte')
 group.add_argument('-n', '--name', type=str,
                     help='El nombre que se usara para crear el archivo de reporte.')
 group.add_argument('-u', '--username', type=str,
                     help='El usuario para iniciar session.')
-group.add_argument('-d', '--devices', type=lambda s : [s.strip() for s in s.split(',')],
-                    help='Listado de dispositivos separados por coma. Puede ser ip o fqdn.')
+group.add_argument('-l', '--hosts', type=lambda s : [s.strip() for s in s.split(',')],
+                    help='Listado de hosts separados por coma. Puede ser ip o fqdn.')
 group.add_argument('-f', '--file', type=str,
                     help='Lee el archivo FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y la utiliza para generar los reportes.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
 group.add_argument('-r', '--range', type=lambda d : datetime.strptime(d, '%Y/%m/%d %H:%M:%S') ,nargs=2,
@@ -153,7 +167,10 @@ if args.version:
     sys.exit(0)
 version.show()
 validate_args(args)
-
+os.makedirs(args.directory, exist_ok=True)
+logging.info(f"The report will be created in {args.directory}")
+tempDir = tempfile.mkdtemp() #"f5Reports/"
+logging.info(f"The temp directory is {tempDir}")
 rrdGraphs = [
     {
         "title": "Plane CPU Usage",
@@ -323,9 +340,9 @@ if args.username:
         print("Passwords doesn't match")
         sys.exit()
     devices=[]
-    for deviceIp in args.devices:
+    for host in args.hosts:
         devices.append({
-            'host':deviceIp,
+            'host':host,
             'username': args.username,
             'password': bigipPassword
             })
@@ -335,14 +352,16 @@ elif args.file:
         sys.exit(1)
 for device in devices:
     try:
-        result=f5.getDeviceInfo(device['host'], device['username'], device['password'],rrdGraphs,rrdRange,workingDir)
+        result=f5.getDeviceInfo(device['host'], device['username'], device['password'],rrdGraphs,rrdRange,tempDir)
         performanceReportDict[device['host']]=result
     except Exception as err:
+        logging.error(err)
         logging.info('Failed to get information from f5 device. Let\'s move on to the next task')
+
         showWarning=True
 
-report.generateHtml(performanceReportDict,args.name,workingDir)
-
+report.generateHtml(performanceReportDict,args.name,args.directory)
+shutil.rmtree(tempDir)
 if showWarning :
     print(colored('We were unable to get performance information from at least one device, please check the terminal log for more details.','yellow'))
 print(f"Show some love for Juanito Da Engineer's work at {colored('https://www.linkedin.com/in/juansalinasc/','yellow')}")
