@@ -2,7 +2,7 @@ PerformanceF5
 
 PerformanceF5 es un script creado en python para generar reportes de salud de dispositivos big ip.
 Este script no tiene nada en común con iHealh.f5.com.
-Lo que hace el script es abrir una conexión ssh/sftp al dispositivo big ip, extraer informacion usando comandos de shell/tmsh y generar un reporte en formato html compatible con MS Word para su posterior edición 
+Lo que hace el script es abrir una conexión ssh/sftp al dispositivo big ip, extraer informacion usando comandos de shell/tmsh y generar un reporte en formato html compatible con MS Word para su posterior edición. 
 En el directorio dist existen versiones compiladas con pyinstaller (ejecutables)  para windows y linux.
 
 Creado por Juan Salinas para KData.cl. 2023.
