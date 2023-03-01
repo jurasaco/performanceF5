@@ -1,4 +1,4 @@
-__version__='2.0.2'
+__version__='2.0.3'
 from termcolor import colored
 def show():
  print(colored(f"Version: {__version__}",'yellow') )
