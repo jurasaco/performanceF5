@@ -54,6 +54,9 @@ def generateHtml(devicesInfo,reportName,outputPath):
     table.overview > tbody > tr > td:nth-child(9){text-align: center;}
     table.overview > tbody > tr > td:nth-child(10){text-align: center;}
 
+    table.overviewperf > thead > tr > th {min-width: 50px; background-color: rgb(49, 96, 183);color: white; font-size: 8pt;}
+    table.overviewperf > tbody > tr > td {min-width: 50px; font-size: 8pt;text-align: right;}
+
     p.perfGraphContents1 { margin-left: 0cm;  }
     p.perfGraphContents2 { margin-left: 1cm;  }
     p.perfGraphContents3 { margin-left: 2cm;  }
@@ -88,6 +91,7 @@ def generateHtml(devicesInfo,reportName,outputPath):
     html=""
     deviceInfoHtml=""
     deviceInfoHtmlOverview=""
+    deviceInfoHtmlOverviewPerf=""
     logging.info("Generating HTML report...")
     for deviceIp,deviceInfo in devicesInfo.items():
         logging.info(f'{" "*1}Converting {deviceIp} information to html...')
@@ -100,14 +104,19 @@ def generateHtml(devicesInfo,reportName,outputPath):
         Periodo {deviceInfo['rangeStart']} - {deviceInfo['rangeEnd']}.
         </p>     
         """
+        allMaxValues={}
         for graph in deviceInfo['graphs']:
             maxValueInfo=[]
             for serie in graph['series']:
                 if 'format-values' in serie and not serie['format-values']==None:
                     maxValueInfo.append(f"{serie['label']} = {serie['format-values'](int(serie['maxValue']) if serie['maxValue'].isnumeric() else 0)}")
+                    if serie["overview-header"] :
+                        allMaxValues[f"{serie['overview-header']}"] = serie['format-values'](int(serie['maxValue']) if serie['maxValue'].isnumeric() else 0)
                 else:
                     maxValueInfo.append(f"{serie['label']} = {serie['maxValue']}")
-            maxValueInfoStr=f'Valores máximos del periodo: {", ".join(maxValueInfo)}.'
+                    if serie["overview-header"] :
+                        allMaxValues[f"{serie['overview-header']}"] = serie['maxValue']
+            maxValueInfoStr=f'Valores máximos del periodo: {", ".join(maxValueInfo)}.'     
             deviceInfoHtml+=f"""
         <p class=perfGraphContents2>
         <span class=subtitle2 >{graph['title']}</span>
@@ -121,6 +130,7 @@ def generateHtml(devicesInfo,reportName,outputPath):
         <br>
         """
             os.remove(graph['filename']) 
+        deviceInfoHtml+="<br>"
         deviceInfoHtmlOverview+=f"""
         <tr>
             <td>{deviceInfo['failoverStatus']}</td>
@@ -133,6 +143,18 @@ def generateHtml(devicesInfo,reportName,outputPath):
             <td>{deviceInfo['syncStatus'][0][1]}</td>
             <td>{deviceInfo['sysPlatformName']}</td>
             <td>{deviceInfo['sysChassisSerial']}</td>            
+        </tr>
+        """
+        tdStr=""
+        thStr=""
+        for mvLabel,mvValue in allMaxValues.items():
+            thStr+=f"<th>{mvLabel}</th>\n"
+            tdStr+=f"<td>{mvValue}</td>\n"
+        deviceInfoHtmlOverviewPerf+=f"""
+        <tr>
+            <td>{deviceInfo['hostname']}</td>
+            {tdStr}
+            <td>>>COMENTARIO<<</td>    
         </tr>
         """
     deviceInfoHtml+="""
@@ -166,6 +188,29 @@ def generateHtml(devicesInfo,reportName,outputPath):
         </table>
     </p>
     """
+
+    deviceInfoHtmlOverviewPerf=f"""
+    <p class=perfGraphContents1>
+    <span class=subtitle >Visión general rendimiento</span>
+    </p>
+    <p class=perfGraphContents2 >
+    Periodo {deviceInfo['rangeStart']} - {deviceInfo['rangeEnd']}.
+    </p>
+    <p class=perfGraphContents1 style="text-align:center" >
+        <table class=overviewperf >
+        <thead>
+            <tr>
+                <th style="color: white;background-color: rgb(49, 96, 183);">Nombre de host</th>
+                {thStr}
+                <th style="color: white;background-color: rgb(49, 96, 183);">Comentario</th>
+            </tr>
+        </thead>
+        <tbody>
+        {deviceInfoHtmlOverviewPerf}
+        </tbody>
+        </table>
+    </p>
+    """
     html=f"""
     
     <html>
@@ -176,6 +221,8 @@ def generateHtml(devicesInfo,reportName,outputPath):
     <body>
     <page size="A4">
     {deviceInfoHtmlOverview}
+    <br>
+    {deviceInfoHtmlOverviewPerf}
     <br>
     {deviceInfoHtml}
     </page>

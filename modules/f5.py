@@ -25,11 +25,10 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
         cmd=rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath)
         graphInfo={}
 
-        result=graphInfo['title']=rrdGraph['title']
-
+        graphInfo['title']=rrdGraph['title']
         getOutputFromCmdRaw(
             client,
-            f"Graph '{rrdGraph['title']}' {rrdGraph['filename']} {result} ",
+            f"Graph '{rrdGraph['title']}' {rrdGraph['filename']} ",
             cmd
         )
         graphInfo['series']=[]
@@ -41,6 +40,7 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
                 f'{" "*2}Serie "{serie["label"]}" {serie["name"]}...',
                 cmd
             )
+            result=result.replace('0x0','').strip()
             if 'format-values' in serie:
                 formatValuesFunction=serie['format-values']
             else:
@@ -50,7 +50,8 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
                 "name": serie['name'],
                 "label": serie['label'],
                 "maxValue": result,
-                "format-values": formatValuesFunction
+                "format-values": formatValuesFunction,
+                "overview-header": serie['overview-header'] if 'overview-header' in serie else False
             })
         logging.infoAndHold(f'{" "*1}Starting sftp client...')
         try:
@@ -81,6 +82,20 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
 
 
 def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
+    secPerPixel=((rrdRange['end']-rrdRange['start'])/876)
+    if secPerPixel >3600 :
+        steps=7200
+    elif secPerPixel > 1800 :
+        steps=3600
+    elif secPerPixel > 900 :
+        steps=1800
+    elif secPerPixel > 300 :
+        steps=900
+    elif secPerPixel > 60 :
+        steps=300
+    else:
+        steps=60
+
     cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} -D -w 909 -h 269 --font DEFAULT:11: " \
     f"--start {rrdRange['start']} --end {rrdRange['end']}  "
     if 'x-grid' in rrdRange:
@@ -95,23 +110,46 @@ def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
         cmd+=f"--base \"{rrdGraph['base']}\" "
     cmd+=f'-v "{rrdGraph["vertical-label"]}" '
     for serie in rrdGraph['series']:
-        cmd += f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']} "
+        cmd += f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:step={steps} "
         suffix=''
         if 'bytestobits' in serie:
             cmd += f"CDEF:{serie['name']}bits={serie['name']},8,* "
             suffix='bits'
+        if 'percentOf' in serie:
+            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:step={steps} "
+            cmd += f"CDEF:{serie['name']}percent={serie['name']},{serie['percentOf']},/,100,* "
+            suffix='percent'
         cmd += f"LINE1:{serie['name']}{suffix}{serie['color']}:\"{serie['label']}\" "
     return cmd
 
 def rddtoolMaxCmd(serie,rrdRange):
     #print(serie)
+    secPerPixel=((rrdRange['end']-rrdRange['start'])/876)
+
+    if secPerPixel >3600 :
+        steps=7200
+    elif secPerPixel > 1800 :
+        steps=3600
+    elif secPerPixel > 900 :
+        steps=1800
+    elif secPerPixel > 300 :
+        steps=900
+    elif secPerPixel > 60 :
+        steps=300
+    else:
+        steps=60
+
     cmd="rrdtool graph /var/tmp/borrame.png " \
         f"--start {rrdRange['start']} --end {rrdRange['end']} " \
-        f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']} "
+        f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:step={steps} "
     suffix=''
     if 'bytestobits' in serie:
             cmd += f"CDEF:{serie['name']}bits={serie['name']},8,* "
             suffix='bits'
+    if 'percentOf' in serie:
+            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:step={steps} "
+            cmd += f"CDEF:{serie['name']}percent={serie['name']},{serie['percentOf']},/,100,* "
+            suffix='percent'
     cmd+=f"VDEF:max={serie['name']}{suffix},MAXIMUM PRINT:max:\"%.0lf\""
     return cmd
 

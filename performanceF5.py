@@ -145,10 +145,10 @@ parser = argparse.ArgumentParser(
  prog="performanceF5",
  description='Generador de informe de rendimiento de equipos f5 via ssh/sftp. Escrito por '+ colored('Juan Salinas', 'yellow') + '.')
 group = parser.add_argument_group('argumentos requeridos')
-group.add_argument('-d', '--directory', type=str,
-                    help='La ruta del directorio para almacenar el reporte')
 group.add_argument('-n', '--name', type=str,
                     help='El nombre que se usara para crear el archivo de reporte.')
+group.add_argument('-d', '--directory', type=str,
+                    help='La ruta del directorio para almacenar el reporte')
 group.add_argument('-u', '--username', type=str,
                     help='El usuario para iniciar session.')
 group.add_argument('-l', '--hosts', type=lambda s : [s.strip() for s in s.split(',')],
@@ -213,6 +213,7 @@ rrdGraphs = [
             {
                 "name": "Rratio",
                 "label": "Utilization",
+                "overview-header": "CPU %",
                 "rrd": "/var/rrd/rollupcpu",
                 "cf": "AVERAGE",
                 "color": "#FF0000"
@@ -229,6 +230,7 @@ rrdGraphs = [
             {
                 "name": "curclientconns",
                 "label": "Connections",
+                "overview-header": "Conns",
                 "rrd": "/var/rrd/connections",
                 "cf": "AVERAGE",
                 "color": "#FF0000"
@@ -239,33 +241,36 @@ rrdGraphs = [
         "title": "Memory Used",
         "filename" : "memory.png",
         "lower-limit": 0,
-        "upper-limit": 50,
+        "upper-limit": 100,
         "vertical-label":"Percent Used",
         "base": 1024,
         "series": [
             {
                 "name": "Rtmmused",
                 "label": "TMM Memory Used",
+                "overview-header": "TMM Mem",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#FF0000",
-                "format-values": report.convert_bytes
+                "percentOf": "Rtmmmemory"
             },
             {
                 "name": "Rotherused",
                 "label": "Other Memory Used",
+                "overview-header": "Other Mem",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#00FF00",
-                "format-values": report.convert_bytes
+                "percentOf": "Rothertotal"
             },
             {
                 "name": "Rusedswap",
                 "label": "Swap Used",
+                "overview-header": "Swap Mem",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#0000FF",
-                "format-values": report.convert_bytes
+                "percentOf": "Rtotalswap"
             }
         ]
     },
@@ -280,6 +285,7 @@ rrdGraphs = [
             {
                 "name": "servicebytes",
                 "label": "Service",
+                "overview-header": "Thrput Service",
                 "rrd": "/var/rrd/throughput",
                 "cf": "AVERAGE",
                 "color": "#FF0000",
@@ -289,6 +295,7 @@ rrdGraphs = [
             {
                 "name": "tput_bytes_in",
                 "label": "In",
+                "overview-header": "Thrput In",
                 "rrd": "/var/rrd/throughput",
                 "cf": "AVERAGE",
                 "color": "#00FF00",
@@ -298,6 +305,7 @@ rrdGraphs = [
             {
                 "name": "tput_bytes_out",
                 "label": "Out",
+                "overview-header": "Thrput Out",
                 "rrd": "/var/rrd/throughput",
                 "cf": "AVERAGE",
                 "color": "#0000FF",
