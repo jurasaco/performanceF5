@@ -12,9 +12,9 @@ import getpass
 import json
 import os
 import stat
-import base64
+
 import colorama #for windows terminal colors
-import csv
+
 import tempfile
 import shutil
 
@@ -22,81 +22,12 @@ import modules.logging as logging
 import modules.f5 as f5
 import modules.version as version
 import modules.report as report
+import modules.credentials as credentials
 
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 colorama.init()
 
 
-
-def readDevicesFile(filePath):
-
-    encIdStr='$256$64$' #sha256,base64
-    strOk=colored('OK','green')
-    strErr=colored('ERROR','red')
-    encryptionPassword = getpass.getpass(prompt='Enter encryption password: ')
-    encryptionPasswordConfirm = getpass.getpass(prompt='Confirm encryption password: ')
-
-    if encryptionPassword != encryptionPasswordConfirm:
-        print(f"{strErr}: Encryption passwords doesn't match.")
-        return None
-    if len(encryptionPassword)<5:
-        print(f"{strErr}: Encryption password minimum length is 6 characters.")
-        return None
-    if not os.path.exists(filePath):
-        print(f"{strErr}: Device file {filePath} doesn't exists.")
-        return None
-    devices=[]
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=b'0123456789abcdef',
-        iterations=480000,
-    )
-    key = base64.urlsafe_b64encode(kdf.derive(encryptionPassword.encode()))
-    f = Fernet(key)
-    #token = f.encrypt(b"welcome to geeksforgeeks")
-    #d = f.decrypt(token)
-    print(f"Reading device file {filePath}...",end="")
-    file=open(filePath, 'r')
-    lines=file.readlines()
-    print(strOk)
-    updateFile=False
-    for device in csv.reader(lines, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True):
-        if len(device)==0:
-            continue
-        if len(device)!=3:
-            print('Invalid line format. It must be "<ip|fqdn>","<username>","<plaintext_password|encrypted_password>"')
-            continue
-        (host,username,password)=device
-    
-        if encIdStr==password[:len(encIdStr)]:
-            print(f"Decrypting password for {username}@{host}")
-            passwordEE=password
-            try:
-                password=f.decrypt(base64.urlsafe_b64decode(passwordEE[len(encIdStr):])).decode()
-            except :
-                print(f'{strErr}: Something went wrong decoding the password for {username}@{host}. Bad encryption password?')
-                continue
-        else:
-            print(f"Encrypting password for {username}@{host}")
-            updateFile=True
-            passwordEE=encIdStr+base64.urlsafe_b64encode(f.encrypt(password.encode())).decode()
-        devices.append({'host':host,'username':username,'password':password,'passwordEE':passwordEE})
-    file.close()
-    #print(json.dumps(devices,indent=2))
-    if updateFile:
-        print(f"Updating {filePath} with encrypted passwords...",end="")
-        file=open(filePath,'w')
-        fileContent=""
-        for device in devices:
-            fileContent+=f"\"{device['host']}\",\"{device['username']}\",\"{device['passwordEE']}\"\n"
-        file.write(fileContent)
-        file.close()
-        print(strOk)
-    return devices
 
 def validate_args(args):
     strErr=colored('ERROR: ','red')
@@ -155,6 +86,8 @@ group.add_argument('-l', '--hosts', type=lambda s : [s.strip() for s in s.split(
                     help='Listado de hosts separados por coma. Puede ser ip o fqdn.')
 group.add_argument('-f', '--file', type=str,
                     help='Lee el archivo FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y la utiliza para generar los reportes.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
+group.add_argument('-k', '--keyfile', action='store_true',
+                    help='Utiliza keyfile para guardar y/o recuperar contraseña de cifrado del archivo especificado con -f')
 group.add_argument('-r', '--range', type=lambda d : datetime.strptime(d, '%Y/%m/%d %H:%M:%S') ,nargs=2,
                     help='Rango de fechas en el formato "<yyyy/mm/dd hh:mm:ss>" "<yyyy/mm/dd hh:mm:ss>". Si no se especifica rango se generara el resporte del mes anterior a la ejecuccion. Ejemplo: Mes de ejecucción Enero-2023 <2022/12/1 00:00:00>-<2023/1/1 00:00:00>')
 group.add_argument('-v', '--version', action='store_true',
@@ -356,7 +289,7 @@ if args.username:
             'password': bigipPassword
             })
 elif args.file:
-    devices=readDevicesFile(args.file)
+    devices=credentials.readDevicesFile(args.file,useKeyFile=args.keyfile)
     if devices == None:
         sys.exit(1)
 for device in devices:

@@ -82,21 +82,20 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
 
 
 def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
-    secPerPixel=((rrdRange['end']-rrdRange['start'])/876)
-    if secPerPixel >3600 :
-        steps=7200
-    elif secPerPixel > 1800 :
-        steps=3600
-    elif secPerPixel > 900 :
-        steps=1800
-    elif secPerPixel > 300 :
-        steps=900
-    elif secPerPixel > 60 :
-        steps=300
-    else:
+    secToGraph=((rrdRange['end']-rrdRange['start']))
+    if secToGraph > 2592000 :
+        steps=600
+    elif secToGraph > 604800 :
+        steps=600
+    elif secToGraph > 86400 :
         steps=60
-
-    cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} -D -w 909 -h 269 --font DEFAULT:11: " \
+    elif secToGraph > 10800 :
+        steps=30
+    else:
+        steps=10
+    
+    logging.info(f"Step=>{steps}")
+    cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} --slope-mode -D -w 909 -h 269 --font DEFAULT:11: " \
     f"--start {rrdRange['start']} --end {rrdRange['end']}  "
     if 'x-grid' in rrdRange:
         cmd+=f"--x-grid \"{rrdRange['x-grid']}\" "
@@ -123,21 +122,17 @@ def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
     return cmd
 
 def rddtoolMaxCmd(serie,rrdRange):
-    #print(serie)
-    secPerPixel=((rrdRange['end']-rrdRange['start'])/876)
-
-    if secPerPixel >3600 :
-        steps=7200
-    elif secPerPixel > 1800 :
-        steps=3600
-    elif secPerPixel > 900 :
-        steps=1800
-    elif secPerPixel > 300 :
-        steps=900
-    elif secPerPixel > 60 :
-        steps=300
-    else:
+    secToGraph=((rrdRange['end']-rrdRange['start']))
+    if secToGraph > 2592000 :
+        steps=600
+    elif secToGraph > 604800 :
+        steps=600
+    elif secToGraph > 86400 :
         steps=60
+    elif secToGraph > 10800 :
+        steps=30
+    else:
+        steps=10
 
     cmd="rrdtool graph /var/tmp/borrame.png " \
         f"--start {rrdRange['start']} --end {rrdRange['end']} " \
