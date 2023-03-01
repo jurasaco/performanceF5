@@ -11,13 +11,13 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def readDevicesFile(filePath,useKeyFile=False):
+    encIdStr='$256$64$' #sha256,base64
+    strOk=colored('OK','green')
+    strErr=colored('ERROR','red')
     if not os.path.exists(filePath):
         print(f"{strErr}: Device file {filePath} doesn't exists.")
         return None
 
-    encIdStr='$256$64$' #sha256,base64
-    strOk=colored('OK','green')
-    strErr=colored('ERROR','red')
  
     if useKeyFile :
         masterKey=getMasterKey(filePath)
