@@ -171,6 +171,7 @@ os.makedirs(args.directory, exist_ok=True)
 logging.info(f"The report will be created in {args.directory}")
 tempDir = tempfile.mkdtemp() #"f5Reports/"
 logging.info(f"The temp directory is {tempDir}")
+
 rrdGraphs = [
     {
         "title": "Plane CPU Usage",

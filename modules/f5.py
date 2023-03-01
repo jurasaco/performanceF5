@@ -9,7 +9,7 @@ import modules.logging as logging
 
 def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
     bigipIpAddress= client.get_transport().getpeername()[0]
-    uniqueId=uuid.uuid4().hex
+    uniqueId=uuid.getnode().hex #ahora usaremos siempre el mismo directorio temporal para no llenarnos de directorios como cuando usabamos uuid.uuid4().hex
     remoteTmpPath=f"/var/tmp/perfF5_{uniqueId}" #siempre debe terminar sin /
     
     getOutputFromCmdRaw(
