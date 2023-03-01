@@ -4,7 +4,7 @@ import os
 import getpass
 import appdirs
 import hashlib
-
+import stat
 from termcolor import colored
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -122,6 +122,7 @@ def saveMasterKey(filePath,masterKey):
     masterKeyFilePath = os.path.join(appDataFolder, masterKeyFileName)
     print(f"Updating master Key file {masterKeyFileName}.")
     with open(masterKeyFilePath,'w') as f:
+        os.chmod(masterKeyFilePath, 0o400)
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -131,4 +132,6 @@ def saveMasterKey(filePath,masterKey):
         key = base64.urlsafe_b64encode(kdf.derive("pfF5.obfuscation.key".encode()))
         fNet = Fernet(key)
         f.write(base64.urlsafe_b64encode(fNet.encrypt(masterKey.encode())).decode())
+    os.chmod(filePath, stat.S_IRUSR)
+    
 
