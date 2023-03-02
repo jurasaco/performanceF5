@@ -271,8 +271,9 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdGraphs,rrdRang
     )
     deviceInfo|=getInfoFromCmd(
         client,
-        'Getting ltm logs...',
-        'ls -r /var/log/ltm.*.gz | xargs -n 1 zcat | cat - /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
+        'Getting ltm logs (only ltm and ltm.1 files)...',
+        #'ls -r /var/log/ltm.*.gz | xargs -n 1 zcat | cat - /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
+        'cat /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
         [{
             'key':'ltmLogs',
             'regexp':r'(.+)'
