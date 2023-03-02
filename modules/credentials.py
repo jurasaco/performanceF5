@@ -122,7 +122,7 @@ def saveMasterKey(filePath,masterKey):
     masterKeyFilePath = os.path.join(appDataFolder, masterKeyFileName)
     print(f"Updating master Key file {masterKeyFileName}.")
     with open(masterKeyFilePath,'w') as f:
-        os.chmod(filePath, stat.S_IRUSR)
+        os.chmod(masterKeyFilePath, stat.S_IRUSR)
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
