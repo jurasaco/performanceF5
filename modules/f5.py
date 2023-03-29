@@ -119,7 +119,6 @@ def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
             cmd += f"CDEF:{serie['name']}percent={serie['name']},{serie['percentOf']},/,100,* "
             suffix='percent'
         cmd += f"LINE2:{serie['name']}{suffix}{serie['color']}:\"{serie['label']}\" "
-        cmd += f'GPRINT:{serie["name"]}{suffix}:MAX:"MAX\\:%6.2lf %s" ' 
     return cmd
 
 def rddtoolMaxCmd(serie,rrdRange):
