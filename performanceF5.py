@@ -302,8 +302,10 @@ for device in devices:
 
         showWarning=True
 
-report.generateHtml(performanceReportDict,args.name,args.directory)
+report.generateHtml2(performanceReportDict,args.name,args.directory)
+logging.infoAndHold(f'Deleting temp directory {tempDir}...')
 shutil.rmtree(tempDir)
+logging.infoUnholdOk('OK')
 if showWarning :
     print(colored('We were unable to get performance information from at least one device, please check the terminal log for more details.','yellow'))
 print(f"Show some love for Juanito Da Engineer's work at {colored('https://www.linkedin.com/in/juansalinasc/','yellow')}")
