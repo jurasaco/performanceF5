@@ -6,6 +6,154 @@ from datetime import date
 from datetime import timedelta
 import uuid
 import modules.logging as logging
+import modules.report as report
+
+rrdGraphs = [
+    {
+        "title": "Plane CPU Usage",
+        "filename" : "planesStatsGraph.png",
+        "lower-limit": 0,
+        "upper-limit": 100,
+        "vertical-label":"% Utilization",
+        "series": [
+            {
+                "name": "DataPlaneCPUUsage",
+                "label": "Data Plane",
+                "rrd": "/var/rrd/planestat",
+                "cf": "AVERAGE",
+                "color": "#FF0000"
+            },
+            {
+                "name": "CtlPlaneCPUUsage",
+                "label": "Control Plane",
+                "rrd": "/var/rrd/planestat",
+                "cf": "AVERAGE",
+                "color": "#00FF00"
+            },
+            {
+                "name": "AnaPlaneCPUUsage",
+                "label": "Analisys Plane",
+                "rrd": "/var/rrd/planestat",
+                "cf": "AVERAGE",
+                "color": "#0000FF"
+            }
+        ]
+    },
+    {
+        "title": "System CPU Usage",
+        "filename" : "rollupCpu.png",
+        "lower-limit": 0,
+        "upper-limit": 100,
+        "vertical-label":"Usage %",
+        "series": [
+            {
+                "name": "Rratio",
+                "label": "Utilization",
+                "overview-header": "CPU %",
+                "rrd": "/var/rrd/rollupcpu",
+                "cf": "AVERAGE",
+                "color": "#FF0000"
+            }
+        ]
+    },
+    {
+        "title": "Active Connections",
+        "filename" : "connections.png",
+        "lower-limit": 0,
+        "upper-limit": 50,
+        "vertical-label":"Active Conns",
+        "series": [
+            {
+                "name": "curclientconns",
+                "label": "Connections",
+                "overview-header": "Conns",
+                "rrd": "/var/rrd/connections",
+                "cf": "AVERAGE",
+                "color": "#FF0000"
+            }
+        ]
+    },
+    {
+        "title": "Memory Used",
+        "filename" : "memory.png",
+        "lower-limit": 0,
+        "upper-limit": 100,
+        "vertical-label":"Percent Used",
+        "base": 1024,
+        "series": [
+            {
+                "name": "Rtmmused",
+                "label": "TMM Memory Used",
+                "overview-header": "TMM Mem",
+                "rrd": "/var/rrd/memory",
+                "cf": "AVERAGE",
+                "color": "#FF0000",
+                "percentOf": "Rtmmmemory"
+            },
+            {
+                "name": "Rotherused",
+                "label": "Other Memory Used",
+                "overview-header": "Other Mem",
+                "rrd": "/var/rrd/memory",
+                "cf": "AVERAGE",
+                "color": "#00FF00",
+                "percentOf": "Rothertotal"
+            },
+            {
+                "name": "Rusedswap",
+                "label": "Swap Used",
+                "overview-header": "Swap Mem",
+                "rrd": "/var/rrd/memory",
+                "cf": "AVERAGE",
+                "color": "#0000FF",
+                "percentOf": "Rtotalswap"
+            }
+        ]
+    },
+    {
+        "title": "Throughput",
+        "filename" : "throughput.png",
+        "lower-limit": 0,
+        "upper-limit": 50,
+        "vertical-label":"Bits/sec",
+        "base": 1024,
+        "series": [
+            {
+                "name": "servicebytes",
+                "label": "Service",
+                "overview-header": "Thrput Service",
+                "rrd": "/var/rrd/throughput",
+                "cf": "AVERAGE",
+                "color": "#FF0000",
+                "format-values": report.convert_bps,
+                "bytestobits" : True
+            },
+            {
+                "name": "tput_bytes_in",
+                "label": "In",
+                "overview-header": "Thrput In",
+                "rrd": "/var/rrd/throughput",
+                "cf": "AVERAGE",
+                "color": "#00FF00",
+                "format-values": report.convert_bps,
+                "bytestobits" : True
+            },
+            {
+                "name": "tput_bytes_out",
+                "label": "Out",
+                "overview-header": "Thrput Out",
+                "rrd": "/var/rrd/throughput",
+                "cf": "AVERAGE",
+                "color": "#0000FF",
+                "format-values": report.convert_bps,
+                "bytestobits" : True
+            }
+
+        ]
+    }
+]
+
+
 
 def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
     bigipIpAddress= client.get_transport().getpeername()[0]
@@ -53,6 +201,7 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
                 "format-values": formatValuesFunction,
                 "overview-header": serie['overview-header'] if 'overview-header' in serie else False
             })
+            logging.info(f'{" "*3} {serie["name"]} => {result}')  
         logging.infoAndHold(f'{" "*1}Starting sftp client...')
         try:
             sftpClient = client.open_sftp()
@@ -176,7 +325,7 @@ def getOutputFromCmdRaw(client,cmdInfo,execCmd):
         raise Exception('Failed to get execute remote command')
     return execCmdOutput
 
-def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdGraphs,rrdRange,LocalTmpPath):
+def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdRange,LocalTmpPath):
     deviceInfo={}
     deviceInfo['rangeStart']=datetime.fromtimestamp( rrdRange['start'] )
     deviceInfo['rangeEnd']=datetime.fromtimestamp( rrdRange['end'] )
