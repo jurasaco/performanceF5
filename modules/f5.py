@@ -93,9 +93,9 @@ def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
         steps=30
     else:
         steps=10
-    
+    reducef="AVERAGE"
     logging.info(f"Step=>{steps}")
-    cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} --slope-mode -D -w 909 -h 269 --font DEFAULT:11: " \
+    cmd = f"rrdtool graph {remoteTmpPath}/{rrdGraph['filename']} -D -w 909 -h 269 --font DEFAULT:11: " \
     f"--start {rrdRange['start']} --end {rrdRange['end']}  "
     if 'x-grid' in rrdRange:
         cmd+=f"--x-grid \"{rrdRange['x-grid']}\" "
@@ -109,16 +109,17 @@ def rrdtoolCmd(rrdGraph,rrdRange,remoteTmpPath):
         cmd+=f"--base \"{rrdGraph['base']}\" "
     cmd+=f'-v "{rrdGraph["vertical-label"]}" '
     for serie in rrdGraph['series']:
-        cmd += f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:step={steps} "
+        cmd += f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:reduce={reducef}:step={steps} "
         suffix=''
         if 'bytestobits' in serie:
             cmd += f"CDEF:{serie['name']}bits={serie['name']},8,* "
             suffix='bits'
         if 'percentOf' in serie:
-            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:step={steps} "
+            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:reduce={reducef}:step={steps} "
             cmd += f"CDEF:{serie['name']}percent={serie['name']},{serie['percentOf']},/,100,* "
             suffix='percent'
         cmd += f"LINE2:{serie['name']}{suffix}{serie['color']}:\"{serie['label']}\" "
+        cmd += f'GPRINT:{serie["name"]}{suffix}:MAX:"MAX\\:%6.2lf %s" ' 
     return cmd
 
 def rddtoolMaxCmd(serie,rrdRange):
@@ -133,19 +134,20 @@ def rddtoolMaxCmd(serie,rrdRange):
         steps=30
     else:
         steps=10
-
-    cmd="rrdtool graph /var/tmp/borrame.png " \
+    reducef="AVERAGE"
+    cmd="rrdtool graph /var/tmp/borrame.png -D -w 909 -h 269 " \
         f"--start {rrdRange['start']} --end {rrdRange['end']} " \
-        f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:step={steps} "
+        f"DEF:{serie['name']}={serie['rrd']}:{serie['name']}:{serie['cf']}:reduce={reducef}:step={steps} "
     suffix=''
     if 'bytestobits' in serie:
             cmd += f"CDEF:{serie['name']}bits={serie['name']},8,* "
             suffix='bits'
     if 'percentOf' in serie:
-            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:step={steps} "
+            cmd += f"DEF:{serie['percentOf']}={serie['rrd']}:{serie['percentOf']}:{serie['cf']}:reduce={reducef}:step={steps} "
             cmd += f"CDEF:{serie['name']}percent={serie['name']},{serie['percentOf']},/,100,* "
             suffix='percent'
     cmd+=f"VDEF:max={serie['name']}{suffix},MAXIMUM PRINT:max:\"%.0lf\""
+  
     return cmd
 
 def getInfoFromCmd(client, cmdInfo, execCmd, keysToParse, multiple=False):
