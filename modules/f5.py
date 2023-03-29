@@ -84,7 +84,7 @@ rrdGraphs = [
             {
                 "name": "Rtmmused",
                 "label": "TMM Memory Used",
-                "overview-header": "TMM Mem",
+                "overview-header": "TMM Mem %",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#FF0000",
@@ -93,7 +93,7 @@ rrdGraphs = [
             {
                 "name": "Rotherused",
                 "label": "Other Memory Used",
-                "overview-header": "Other Mem",
+                "overview-header": "Other Mem %",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#00FF00",
@@ -102,7 +102,7 @@ rrdGraphs = [
             {
                 "name": "Rusedswap",
                 "label": "Swap Used",
-                "overview-header": "Swap Mem",
+                "overview-header": "Swap Mem %",
                 "rrd": "/var/rrd/memory",
                 "cf": "AVERAGE",
                 "color": "#0000FF",
@@ -152,8 +152,59 @@ rrdGraphs = [
         ]
     }
 ]
-
-
+#'ls -r /var/log/ltm.*.gz | xargs -n 1 zcat | cat - /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l'
+cmdsToRun = [
+    {
+        'info': 'Getting hostname...',
+        'cmd': "echo $HOSTNAME",
+        'keys': [{'key':'hostname', 'regexp':r'(.+)'}]
+    },
+    {
+        'info': 'Getting tmos version...',
+        'cmd': "tmsh show sys version  | grep \" Version\"",
+        'keys': [{'key':'tmosVersion', 'regexp':r'Version\s+(.+)'}]
+    },
+    {
+        'info': 'Getting hardware information...',
+        'cmd': "tmsh show sys hardware | grep -A20 Platform",
+        'keys': [
+            {'key':'sysPlatformName', 'regexp':r'Name\s+(.+)'},
+            {'key':'sysChassisSerial', 'regexp':r'(?:Chassis|Appliance) Serial\s+(.+)'}
+        ]
+    },
+    {
+        'info': 'Getting management ip address...',
+        'cmd': 'ip address show mgmt | grep " inet "',
+        'keys': [{'key':'sysManagementIp', 'regexp':r'(\d+\.\d+\.\d+\.\d+\/\d+)'}]
+    },
+    {
+        'info': 'Getting provisioned modules list...',
+        'cmd': "tmsh list sys provision one-line | grep level ",
+        'keys': [{'key':'sysProvision', 'regexp':r'sys provision (.+) { level (.+) }'}],
+        'multiple': True
+    },
+    {
+        'info': 'Getting failover status...',
+        'cmd': "tmsh show cm failover-status | grep \"Status  \"",
+        'keys': [{'key':'failoverStatus', 'regexp':r'Status\s+(.+)'}]
+    },
+    {
+        'info': 'Getting sync status...',
+        'cmd': "tmsh show cm sync-status",
+        'keys': [{'key':'syncStatus', 'regexp':r'^(Status|Mode)\s+(.+)$'}],
+        'multiple': True
+    },
+    {
+        'info': 'Getting ltm logs (only ltm and ltm.1 files)...',
+        'cmd': 'cat /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
+        'keys': [{'key':'ltmLogs', 'regexp':r'(.+)'}]
+    },
+    {
+        'info': 'Getting system uptime...',
+        'cmd': 'awk \'{m=$1/60; h=m/60; printf "%sd %sh %sm\\n", int(h/24), int(h%24), int(m%60), int($1%60) }\' /proc/uptime',
+        'keys': [{'key':'sysUptime', 'regexp':r'(.+)'}]
+    }
+]
 
 def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
     bigipIpAddress= client.get_transport().getpeername()[0]
@@ -199,7 +250,7 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
                 "label": serie['label'],
                 "maxValue": result,
                 "format-values": formatValuesFunction,
-                "overview-header": serie['overview-header'] if 'overview-header' in serie else False
+                "overview-header": serie.get('overview-header',False)
             })
             logging.info(f'{" "*3} {serie["name"]} => {result}')  
         logging.infoAndHold(f'{" "*1}Starting sftp client...')
@@ -345,101 +396,14 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdRange,LocalTmp
         raise Exception('Failed to start ssh session.')
     logging.infoUnholdOk('OK')
 
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting hostname...',
-        "echo $HOSTNAME",
-        [{
-            'key':'hostname',
-            'regexp':r'(.+)'
-        }]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting tmos version...',
-        "tmsh show sys version  | grep \" Version\"",
-        [{
-            'key':'tmosVersion',
-            'regexp':r'Version\s+(.+)'
-        }]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting hardware information...',
-        "tmsh show sys hardware | grep -A20 Platform",
-        [{
-            'key':'sysPlatformName',
-            'regexp':r'Name\s+(.+)'
-        },
-        {
-            'key':'sysChassisSerial',
-            'regexp':r'(?:Chassis|Appliance) Serial\s+(.+)'
-        }
-        ]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting management ip address...',
-        'ip address show mgmt | grep " inet "',
-        [{
-            'key':'sysManagementIp',
-            'regexp':r'(\d+\.\d+\.\d+\.\d+\/\d+)'
-        }
-        ]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting provisioned modules list...',
-        "tmsh list sys provision one-line | grep level ",
-        [{
-            'key':'sysProvision',
-            'regexp':r'sys provision (.+) { level (.+) }'
-        }
-        ],
-        multiple=True
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting failover status...',
-        "tmsh show cm failover-status | grep \"Status  \"",
-        [{
-            'key':'failoverStatus',
-            'regexp':r'Status\s+(.+)'
-        }
-        ]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting sync status...',
-        "tmsh show cm sync-status",
-        [{
-            'key':'syncStatus',
-            'regexp':r'^(Status|Mode)\s+(.+)$'
-        }
-        ],
-        multiple=True
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting ltm logs (only ltm and ltm.1 files)...',
-        #'ls -r /var/log/ltm.*.gz | xargs -n 1 zcat | cat - /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
-        'cat /var/log/ltm.1 /var/log/ltm | grep -P " (warning|err|crit|alert|emerg) " | wc -l',
-        [{
-            'key':'ltmLogs',
-            'regexp':r'(.+)'
-        }
-        ]
-    )
-    deviceInfo|=getInfoFromCmd(
-        client,
-        'Getting system uptime...',
-        'awk \'{m=$1/60; h=m/60; printf "%sd %sh %sm\\n", int(h/24), int(h%24), int(m%60), int($1%60) }\' /proc/uptime',
-        [{
-            'key':'sysUptime',
-            'regexp':r'(.+)'
-        }
-        ]
-    )
+    for cmd in cmdsToRun:
+        deviceInfo |= getInfoFromCmd(
+            client,
+            cmd['info'],
+            cmd['cmd'],
+            cmd['keys'],
+            multiple=cmd.get('multiple', False)
+        )
 
     deviceInfo['graphs']=getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath)
 

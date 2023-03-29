@@ -43,11 +43,11 @@
         }
 
         table.overview>thead>tr>th:nth-child(1) {
-            width: 60px;
+            width: 150px;
         }
 
         table.overview>thead>tr>th:nth-child(2) {
-            width: 150px;
+            width: 60px;
         }
 
         table.overview>thead>tr>th:nth-child(3) {
@@ -88,11 +88,11 @@
         }
 
         table.overview>tbody>tr>td:nth-child(1) {
-            text-align: center;
+            text-align: left;
         }
 
         table.overview>tbody>tr>td:nth-child(2) {
-            text-align: left;
+            text-align: center;
         }
 
         table.overview>tbody>tr>td:nth-child(3) {
@@ -139,7 +139,10 @@
             font-size: 8pt;
             text-align: right;
         }
-
+        table.overviewperf>tbody>tr>td:nth-child(1) {
+            width: 150px;
+            text-align: left;
+        }
         p.perfGraphContents1 {
             margin-left: 0cm;
         }
@@ -199,8 +202,8 @@
         <table class=overview>
             <thead>
                 <tr>
-                    <th style="color: white;background-color: rgb(49, 96, 183);">Estado</th>
                     <th style="color: white;background-color: rgb(49, 96, 183);">Nombre de host</th>
+                    <th style="color: white;background-color: rgb(49, 96, 183);">Estado</th>
                     <th style="color: white;background-color: rgb(49, 96, 183);">Versión TMOS</th>
                     <th style="color: white;background-color: rgb(49, 96, 183);">Dirección IP</th>
                     <th style="color: white;background-color: rgb(49, 96, 183);">Provisión</th>
@@ -218,8 +221,8 @@
 sysProvision=", ".join(map(lambda tuple : tuple[0], deviceInfo['sysProvision']))
 %>
                 <tr>
-                    <td>${deviceInfo['failoverStatus']}</td>
                     <td>${deviceInfo['hostname']}</td>
+                    <td>${deviceInfo['failoverStatus']}</td>
                     <td>${deviceInfo['tmosVersion']}</td>
                     <td>${deviceInfo['sysManagementIp']}</td>
                     <td>${sysProvision}</td>
@@ -255,7 +258,7 @@ for deviceIp,deviceInfo in devicesInfo.items():
                     allMaxValues[f"{serie['overview-header']}"] = serie['maxValue']
     thStr=""
     for mvLabel,mvValue in allMaxValues.items():
-        thStr+=f"<th>{mvLabel}</th>\n"
+        thStr+=f"<th style=\"color: white;background-color: rgb(49, 96, 183);\">{mvLabel}</th>\n"
     #solo necesitamos los headers del primer device
     #mejorar en el futuro
     break
