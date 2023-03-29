@@ -31,7 +31,7 @@ def generateHtml2(devicesInfo,reportNamePrefix,outputPath):
     else:
         reportTemplateFile = os.path.abspath(os.path.join(os.path.dirname(__file__),'__report__.html'))
     
-    logging.info(f"Template file {reportTemplateFile}")
+    logging.info(f'{" "*1}Template file {reportTemplateFile}')
     
     reportTemplate = Template(filename=reportTemplateFile)
     html=reportTemplate.render(devicesInfo=devicesInfo)

@@ -253,11 +253,12 @@ for deviceIp,deviceInfo in devicesInfo.items():
             else:
                 if serie["overview-header"] :
                     allMaxValues[f"{serie['overview-header']}"] = serie['maxValue']
-    tdStr=""
     thStr=""
     for mvLabel,mvValue in allMaxValues.items():
         thStr+=f"<th>{mvLabel}</th>\n"
-        tdStr+=f"<td>{mvValue}</td>\n"
+    #solo necesitamos los headers del primer device
+    #mejorar en el futuro
+    break
 %>
         <table class=overviewperf>
             <thead>
@@ -269,6 +270,20 @@ for deviceIp,deviceInfo in devicesInfo.items():
             </thead>
             <tbody>
 % for deviceIp,deviceInfo in devicesInfo.items():
+<%
+    allMaxValues={}
+    for graph in deviceInfo['graphs']:
+        for serie in graph['series']:
+            if 'format-values' in serie and not serie['format-values']==None:
+                if serie["overview-header"] :
+                    allMaxValues[f"{serie['overview-header']}"] = serie['format-values'](int(serie['maxValue']) if serie['maxValue'].isnumeric() else 0)
+            else:
+                if serie["overview-header"] :
+                    allMaxValues[f"{serie['overview-header']}"] = serie['maxValue']
+    tdStr=""
+    for mvLabel,mvValue in allMaxValues.items():
+        tdStr+=f"<td>{mvValue}</td>\n"
+%>
                 <tr>
                     <td>${deviceInfo['hostname']}</td>
                     ${tdStr}
