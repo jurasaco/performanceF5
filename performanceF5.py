@@ -85,11 +85,11 @@ group.add_argument('-u', '--username', type=str,
 group.add_argument('-l', '--hosts', type=lambda s : [s.strip() for s in s.split(',')],
                     help='Listado de hosts separados por coma. Puede ser ip o fqdn.')
 group.add_argument('-f', '--file', type=str,
-                    help='Lee el archivo FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y la utiliza para generar los reportes.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
+                    help='Especifica el archivo de dispositivos y credenciales FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y que se utiliza para conectarse a los dispositivos F5 y extraer la informacion.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
 group.add_argument('-t', '--template', type=str,
-                    help='Especifica el archivo TEMPLATE de Mako que se utilizara para generar el informe.')
+                    help='Especifica el archivo Mako TEMPLATE que se utilizara para generar el informe.')
 group.add_argument('-k', '--keyfile', action='store_true',
-                    help='Utiliza keyfile para guardar y/o recuperar contraseña de cifrado del archivo especificado con -f')
+                    help='Habilita el uso de un keyfile para guardar y/o recuperar la contraseña de cifrado del archivo especificado con -f. Escencial para usar el script en modo no interactivo, como por ejemplo como tarea crontab. Se debe ejecutar almenos una vez en modo interactivo para que el usuario ingrese la contraseña.')
 group.add_argument('-r', '--range', type=lambda d : datetime.strptime(d, '%Y/%m/%d %H:%M:%S') ,nargs=2,
                     help='Rango de fechas en el formato "<yyyy/mm/dd hh:mm:ss>" "<yyyy/mm/dd hh:mm:ss>". Si no se especifica rango se generara el resporte del mes anterior a la ejecuccion. Ejemplo: Mes de ejecucción Enero-2023 <2022/12/1 00:00:00>-<2023/1/1 00:00:00>')
 group.add_argument('-v', '--version', action='store_true',
