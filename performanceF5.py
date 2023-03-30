@@ -86,6 +86,8 @@ group.add_argument('-l', '--hosts', type=lambda s : [s.strip() for s in s.split(
                     help='Listado de hosts separados por coma. Puede ser ip o fqdn.')
 group.add_argument('-f', '--file', type=str,
                     help='Lee el archivo FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y la utiliza para generar los reportes.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
+group.add_argument('-t', '--template', type=str,
+                    help='Especifica el archivo TEMPLATE de Mako que se utilizara para generar el informe.')
 group.add_argument('-k', '--keyfile', action='store_true',
                     help='Utiliza keyfile para guardar y/o recuperar contraseña de cifrado del archivo especificado con -f')
 group.add_argument('-r', '--range', type=lambda d : datetime.strptime(d, '%Y/%m/%d %H:%M:%S') ,nargs=2,
@@ -158,7 +160,7 @@ for device in devices:
 
         showWarning=True
 
-report.generateHtml2(performanceReportDict,args.name,args.directory)
+report.generateHtml2(performanceReportDict,args.name,args.directory,args.template)
 logging.infoAndHold(f'Deleting temp directory {tempDir}...')
 shutil.rmtree(tempDir)
 logging.infoUnholdOk('OK')

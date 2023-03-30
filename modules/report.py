@@ -20,7 +20,7 @@ def convert_bytes(size):
             return "%3.1f %s" % (size, x)
         size /= 1024.0
     return "%.1f PB" % (size / 1024)
-def generateHtml2(devicesInfo,reportNamePrefix,outputPath):
+def generateHtml2(devicesInfo,reportNamePrefix,outputPath,customTemplateFile):
     if not len(devicesInfo) > 0: 
         logging.warning("Empty device performance dictionary. The report was not generated.")
         return None
@@ -30,7 +30,8 @@ def generateHtml2(devicesInfo,reportNamePrefix,outputPath):
         reportTemplateFile = os.path.abspath(os.path.join(sys._MEIPASS,'modules','__report__.html'))
     else:
         reportTemplateFile = os.path.abspath(os.path.join(os.path.dirname(__file__),'__report__.html'))
-    
+    if customTemplateFile:
+        reportTemplateFile = customTemplateFile
     logging.info(f'{" "*1}Template file {reportTemplateFile}')
     
     reportTemplate = Template(filename=reportTemplateFile)
