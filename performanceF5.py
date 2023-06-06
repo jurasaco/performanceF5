@@ -160,6 +160,7 @@ for device in devices:
                                 localTmpPath= tempDir)
         performanceReportDict[device['host']]=result
     except Exception as err:
+        performanceReportDict[device['host']]=None
         logging.error(err)
         logging.info('Failed to get information from f5 device. Let\'s move on to the next task')
 
@@ -178,4 +179,3 @@ if showWarning :
     print(colored('We were unable to get performance information from at least one device, please check the terminal log for more details.','yellow'))
 print(f"Show some love for Juanito Da Engineer's work at {colored('https://www.linkedin.com/in/juansalinasc/','yellow')}")
 print('Done!')
-
