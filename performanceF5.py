@@ -152,13 +152,23 @@ elif args.file:
         sys.exit(1)
 for device in devices:
     try:
-        result=f5.getDeviceInfo(device['host'], device['username'], device['password'],rrdRange,tempDir)
+        result=f5.getDeviceInfo(bigipIpAddress=device['host'], 
+                                bigipPort=22,
+                                bigipUsername=device['username'], 
+                                bigipPassword=device['password'],
+                                rrdRange= rrdRange,
+                                localTmpPath= tempDir)
         performanceReportDict[device['host']]=result
     except Exception as err:
         logging.error(err)
         logging.info('Failed to get information from f5 device. Let\'s move on to the next task')
 
         showWarning=True
+#import pickle
+#datos_serializados = pickle.dumps(performanceReportDict)
+#with open("datos.pickle", "wb") as archivo:
+#    archivo.write(datos_serializados)
+
 
 report.generateHtml2(performanceReportDict,args.name,args.directory,args.template)
 logging.infoAndHold(f'Deleting temp directory {tempDir}...')

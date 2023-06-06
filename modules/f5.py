@@ -7,7 +7,7 @@ from datetime import timedelta
 import uuid
 import modules.logging as logging
 import modules.report as report
-
+import json
 rrdGraphs = [
     {
         "title": "Plane CPU Usage",
@@ -178,6 +178,23 @@ cmdsToRun = [
         'keys': [{'key':'sysManagementIp', 'regexp':r'(\d+\.\d+\.\d+\.\d+\/\d+)'}]
     },
     {
+        'info': 'Getting self ip information...',
+        'cmd': 'tmsh list net self one-line all-properties',
+        'keys': [
+            {'key':'selfIpIpAddress', 'regexp':r'net self ([^\s]+) { address ([^\s]+) '},
+            {'key':'selfIpAllowedServices', 'regexp':r'net self ([^\s]+) { .+ allow-service ({.+}|[^\s]+) '}
+        ],
+        'multiple': True
+    },
+    {
+        'info': 'Getting ntp information...',
+        'cmd': 'ntpq -pn',
+        'keys': [
+            {'key':'ntpStatus', 'regexp':r'^([^\d]|\s|)(\d+\.\d+\.\d+\.\d+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'}
+        ],
+        'multiple': True
+    },
+    {
         'info': 'Getting provisioned modules list...',
         'cmd': "tmsh list sys provision one-line | grep level ",
         'keys': [{'key':'sysProvision', 'regexp':r'sys provision (.+) { level (.+) }'}],
@@ -206,7 +223,7 @@ cmdsToRun = [
     }
 ]
 
-def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
+def getGraphs(client,rrdGraphs,rrdRange,localTmpPath):
     bigipIpAddress= client.get_transport().getpeername()[0]
     uniqueId=hex(uuid.getnode())[2:] #ahora usaremos siempre el mismo directorio temporal para no llenarnos de directorios como cuando usabamos uuid.uuid4().hex
     remoteTmpPath=f"/var/tmp/perfF5_{uniqueId}" #siempre debe terminar sin /
@@ -257,11 +274,11 @@ def getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath):
         try:
             sftpClient = client.open_sftp()
             logging.infoUnholdOk('OK')
-            logging.infoAndHold(f"{' '*2}Transfering Remote:{remoteTmpPath}/{rrdGraph['filename']}  -> Local:{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']} ...")
-            sftpClient.get(f"{remoteTmpPath}/{rrdGraph['filename']}", f"{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}")
+            logging.infoAndHold(f"{' '*2}Transfering Remote:{remoteTmpPath}/{rrdGraph['filename']}  -> Local:{localTmpPath}/{bigipIpAddress}_{rrdGraph['filename']} ...")
+            sftpClient.get(f"{remoteTmpPath}/{rrdGraph['filename']}", f"{localTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}")
             logging.infoUnholdOk('OK')
 
-            graphInfo['filename']=f"{LocalTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}"        
+            graphInfo['filename']=f"{localTmpPath}/{bigipIpAddress}_{rrdGraph['filename']}"        
 
             logging.infoAndHold('Closing sftp client...')
             sftpClient.close()
@@ -376,12 +393,12 @@ def getOutputFromCmdRaw(client,cmdInfo,execCmd):
         raise Exception('Failed to get execute remote command')
     return execCmdOutput
 
-def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdRange,LocalTmpPath):
+def getDeviceInfo(bigipIpAddress,bigipPort,bigipUsername, bigipPassword,rrdRange,localTmpPath):
     deviceInfo={}
     deviceInfo['rangeStart']=datetime.fromtimestamp( rrdRange['start'] )
     deviceInfo['rangeEnd']=datetime.fromtimestamp( rrdRange['end'] )
-    os.makedirs(LocalTmpPath, exist_ok=True)
-    logging.infoAndHold(f'Connecting to {bigipIpAddress}...')
+    os.makedirs(localTmpPath, exist_ok=True)
+    logging.infoAndHold(f'Connecting to {bigipIpAddress}:{bigipPort}...')
     client = SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(AutoAddPolicy())
@@ -389,7 +406,7 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdRange,LocalTmp
     # DateTime=datetime.today().strftime('%Y%m%d%H%M%S')
     try:
         client.connect(bigipIpAddress, username=bigipUsername,
-                       password=bigipPassword, timeout=10)
+                       password=bigipPassword, timeout=10,port=bigipPort)
     except Exception as err:
         logging.error(f"Unexpected {err=}, {type(err)=}")
         logging.error(f"Wrong password for user {bigipUsername} at {bigipIpAddress}?")
@@ -405,13 +422,13 @@ def getDeviceInfo(bigipIpAddress, bigipUsername, bigipPassword,rrdRange,LocalTmp
             multiple=cmd.get('multiple', False)
         )
 
-    deviceInfo['graphs']=getGraphs(client,rrdGraphs,rrdRange,LocalTmpPath)
+    deviceInfo['graphs']=getGraphs(client,rrdGraphs,rrdRange,localTmpPath)
 
     logging.infoAndHold('Closing ssh session...')
     client.close()
     logging.infoUnholdOk('OK')
 
-   # print(devicesInfo)
+    #print(json.dumps(deviceInfo, indent=2,default=str))
     return deviceInfo
 
 # TODO: implementar estadisticas de log por f5 id
