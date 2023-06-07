@@ -2,5 +2,6 @@ appdirs==1.4.4
 colorama==0.4.6
 cryptography==39.0.0
 Mako==1.2.4
+matplotlib==3.7.1
 paramiko==3.0.0
 termcolor==1.1.0
