@@ -49,8 +49,10 @@
 
         table.overview th.failoverStatus {
             width: 1.5cm;
+        }        
+        table.overview th.failoverConnections {
+            width: 1.5cm;
         }
-
         table.overview th.syncStatus {
             width: 1.5cm;
         }
@@ -86,7 +88,9 @@
         table.overview td.failoverStatus {
             text-align: center;
         }
-
+        table.overview td.failoverConnections {
+            text-align: center;
+        }
         table.overview td.syncStatus {
             text-align: center;
         }
@@ -331,6 +335,7 @@ devicesInfoFAIL={key: value for key, value in devicesInfo.items() if value is No
                 <tr>
                     <th class="hostInfo">BIG-IP Host</th>
                     <th class="failoverStatus">HA<br>Status</th>
+                    <th class="failoverConnections">HA<br>Conns</th>
                     <th class="syncStatus">Config<br>Sync</th>
                     <th class="ntpSync">NTP<br>Sync</th>
                     <th class="portLockDown">Port Lock<br>Down</th>
@@ -356,6 +361,12 @@ for selfIpAllowedServices in deviceInfo['selfIpAllowedServices']:
         selfIpLockedDown += 1 
     else:
         selfToCheck.append("=>".join(selfIpAllowedServices))
+failoverConnectionsOK=0
+failoverConnectionsToCheck=[]
+for failoverConn in deviceInfo['failoverConnections']:
+    if failoverConn[5]=='Ok':
+        failoverConnectionsOK += 1 
+    failoverConnectionsToCheck.append(f"{failoverConn[0]}<=>{failoverConn[1]} T:{failoverConn[3]} {failoverConn[5]}")
 %>
                 <tr>
                     <td class="hostInfo">
@@ -366,6 +377,7 @@ for selfIpAllowedServices in deviceInfo['selfIpAllowedServices']:
                         SN: ${deviceInfo['sysChassisSerial']}
                     </td>
                     <td class="failoverStatus"><span title="${deviceInfo['failoverStatus']}" class="failoverStatus ${deviceInfo['failoverStatus'].replace(' ', '_')}"></span></td>
+                    <td class="failoverConnections" title="${'&#010;'.join(failoverConnectionsToCheck)}">${failoverConnectionsOK}/${len(deviceInfo['failoverConnections'])}</td>
                     <td class="syncStatus">${deviceInfo['syncStatus'][0][1]}</td>
                     <td class="ntpSync">${ntpSync}</td>
                     <td class="portLockDown" title="${'&#010;'.join(selfToCheck)}">${selfIpLockedDown}/${len(deviceInfo['selfIpAllowedServices'])}</td>

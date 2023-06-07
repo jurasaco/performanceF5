@@ -160,6 +160,16 @@ cmdsToRun = [
         'keys': [{'key':'hostname', 'regexp':r'(.+)'}]
     },
     {
+        'info': 'Getting sysDateTime...',
+        'cmd': 'date +"%Y-%m-%d %H:%M:%S"',
+        'keys': [{'key':'sysDateTime', 'regexp':r'(.+)'}]
+    },
+    {
+        'info': 'Getting sysTimezone...',
+        'cmd': 'tmsh list sys ntp all-properties',
+        'keys': [{'key':'sysTimezone', 'regexp':r'timezone\s+(.+)'}]
+    },
+    {
         'info': 'Getting tmos version...',
         'cmd': "tmsh show sys version  | grep \" Version\"",
         'keys': [{'key':'tmosVersion', 'regexp':r'Version\s+(.+)'}]
@@ -202,8 +212,11 @@ cmdsToRun = [
     },
     {
         'info': 'Getting failover status...',
-        'cmd': "tmsh show cm failover-status | grep \"Status  \"",
-        'keys': [{'key':'failoverStatus', 'regexp':r'Status\s+(.+)'}]
+        'cmd': "tmsh show cm failover-status",
+        'keys': [
+            {'key':'failoverStatus', 'regexp':r'^Status\s+(.+)$'},
+            {'key':'failoverConnections', 'regexp':r'(\d+\.\d+\.\d+\.\d+\:\d+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}(.+)\s{2,}([^\s]+)','multiple': True},
+            ]
     },
     {
         'info': 'Getting sync status...',
@@ -371,12 +384,12 @@ def getInfoFromCmd(client, cmdInfo, execCmd, keysToParse, multiple=False):
     
     ret = {}
     for keyToParse in keysToParse:
-        if multiple:
+        if keyToParse.get('multiple', multiple): #buscamos el multiple de la key sino usamos el global que se paso como argumento         
             result = re.findall(keyToParse['regexp'], execCmdOutput,re.MULTILINE)
             ret[keyToParse['key']] = result
             retStr = ", ".join(map(lambda tuple: "=".join(tuple), result))
         else:
-            result = re.search(keyToParse['regexp'], execCmdOutput)
+            result = re.search(keyToParse['regexp'], execCmdOutput,re.MULTILINE)
             ret[keyToParse['key']] = result.group(1)
             retStr = result.group(1)
         logging.info(f"{' '*1}{keyToParse['key']} => {retStr}")
