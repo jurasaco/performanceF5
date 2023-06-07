@@ -6,6 +6,8 @@ from datetime import datetime
 from datetime import date
 from datetime import timedelta
 from mako.template import Template
+from mako import exceptions
+
 
 def convert_bps(size):
     for x in ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps']:
@@ -20,8 +22,8 @@ def convert_bytes(size):
             return "%3.1f %s" % (size, x)
         size /= 1024.0
     return "%.1f PB" % (size / 1024)
-def generateHtml2(devicesInfo,reportNamePrefix,outputPath,customTemplateFile,gensufix=True):
-    if not len(devicesInfo) > 0: 
+def generateHtml2(reportInfo,devicesInfo,reportNamePrefix,outputPath,customTemplateFile,gensufix=True):
+    if not sum(1 for value in devicesInfo.values() if value is not None) > 0: 
         logging.warning("Empty device performance dictionary. The report was not generated.")
         return None
     logging.info("Generating HTML report from default template...")
@@ -34,9 +36,13 @@ def generateHtml2(devicesInfo,reportNamePrefix,outputPath,customTemplateFile,gen
     if customTemplateFile:
         reportTemplateFile = customTemplateFile
     logging.info(f'{" "*1}Template file {reportTemplateFile}')
-    
-    reportTemplate = Template(filename=reportTemplateFile)
-    html=reportTemplate.render(devicesInfo=devicesInfo)
+    try:
+        reportTemplate = Template(filename=reportTemplateFile)
+        html=reportTemplate.render(reportInfo=reportInfo,devicesInfo=devicesInfo)
+    except:
+        logging.error(exceptions.text_error_template().render())
+        raise Exception(f'Failed to generate report using template {reportTemplateFile}.')
+
     nowStr=datetime.today().strftime('%Y%m%d%H%M%S')
     reportFileOutput=f'{outputPath}/{reportNamePrefix}{ "_" + nowStr if gensufix else "" }.html'
     logging.infoAndHold(f'{" "*1}Saving report to {reportFileOutput}...')

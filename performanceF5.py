@@ -12,7 +12,7 @@ import getpass
 import json
 import os
 import stat
-
+import base64
 import colorama #for windows terminal colors
 
 import tempfile
@@ -88,6 +88,12 @@ group.add_argument('-f', '--file', type=str,
                     help='Especifica el archivo de dispositivos y credenciales FILE con formato "<ip|fqdn>","<usuario>","<contraseña>" y que se utiliza para conectarse a los dispositivos F5 y extraer la informacion.\nAl utilizar esta opcion se solicitara una contraseña para usarla como llave en el cifrado de las contraseñas.\nLas contraseñas cifradas seran escritas al archivo. No debe olvidar esta contraseña.')
 group.add_argument('-t', '--template', type=str,
                     help='Especifica el archivo Mako TEMPLATE que se utilizara para generar el informe.')
+group.add_argument('--title', type=str,
+                    help='Especifica el titulo para el reporte.')
+group.add_argument('--logo-left', type=str,
+                    help='Especifica el archivo que contiene el logo para ser insertado a la izquierda del titulo.')
+group.add_argument('--logo-right', type=str,
+                    help='Especifica el archivo que contiene el logo para ser insertado a la derecha del titulo.')
 group.add_argument('-k', '--keyfile', action='store_true',
                     help='Habilita el uso de un keyfile para guardar y/o recuperar la contraseña de cifrado del archivo especificado con -f. Escencial para usar el script en modo no interactivo, como por ejemplo como tarea crontab. Se debe ejecutar almenos una vez en modo interactivo para que el usuario ingrese la contraseña.')
 group.add_argument('-r', '--range', type=lambda d : datetime.strptime(d, '%Y/%m/%d %H:%M:%S') ,nargs=2,
@@ -97,6 +103,7 @@ group.add_argument('-v', '--version', action='store_true',
 
 
 args = parser.parse_args()
+
 if args.version:
     version.show()
     sys.exit(0)
@@ -131,6 +138,15 @@ else:
         'end': int(d.timestamp()),
     }
 
+reportInfo={
+    'title':args.title if args.title else 'Informe<br>Plataforma F5',
+    'logo-left-base64': base64.b64encode(open(args.logo_left, 'rb').read()).decode() if args.logo_left else None,
+    'logo-right-base64': base64.b64encode(open(args.logo_right, 'rb').read()).decode() if args.logo_right else None,
+    'rrdRange':{
+        'start':datetime.fromtimestamp( rrdRange['start'] ),
+        'end':datetime.fromtimestamp( rrdRange['end'] )
+        }
+}
 performanceReportDict={}
 showWarning=None
 if args.username: 
@@ -165,13 +181,23 @@ for device in devices:
         logging.info('Failed to get information from f5 device. Let\'s move on to the next task')
 
         showWarning=True
-#import pickle
-#datos_serializados = pickle.dumps(performanceReportDict)
-#with open("datos.pickle", "wb") as archivo:
-#    archivo.write(datos_serializados)
-
-
-report.generateHtml2(performanceReportDict,args.name,args.directory,args.template)
+"""
+import pickle
+datos_serializados = pickle.dumps(reportInfo)
+with open("datos.pickle", "wb") as archivo:
+    archivo.write(datos_serializados)
+datos_serializados = pickle.dumps(performanceReportDict)
+with open("datos2.pickle", "wb") as archivo:
+    archivo.write(datos_serializados)
+"""
+try:
+    report.generateHtml2(reportInfo=reportInfo,
+                        devicesInfo=performanceReportDict,
+                        reportNamePrefix=args.name,
+                        outputPath=args.directory,
+                        customTemplateFile=args.template)
+except:
+    logging.info("Report not created.")
 logging.infoAndHold(f'Deleting temp directory {tempDir}...')
 shutil.rmtree(tempDir)
 logging.infoUnholdOk('OK')
