@@ -215,7 +215,7 @@ cmdsToRun = [
         'cmd': "tmsh show cm failover-status",
         'keys': [
             {'key':'failoverStatus', 'regexp':r'^Status\s+(.+)$'},
-            {'key':'failoverConnections', 'regexp':r'(\d+\.\d+\.\d+\.\d+\:\d+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}(.+)\s{2,}([^\s]+)','multiple': True},
+            {'key':'failoverConnections', 'regexp':r'(\d+\.\d+\.\d+\.\d+\:\d+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}([^\s]+)\s{2,}(.+?)\s{2,}([^\s]+)','multiple': True},
             ]
     },
     {
